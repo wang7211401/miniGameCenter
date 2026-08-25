@@ -1,6 +1,7 @@
 // src/games/tetris/TetrisGame.jsx
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { levels } from './levels';
 import {
   clearRows,
@@ -13,9 +14,11 @@ import {
   rotateShape,
 } from './tetrisLogic';
 
-const { width, height } = Dimensions.get('window');
-
 const TetrisGame = ({ levelId, onComplete }) => {
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const bottomSafe = insets.bottom || 0;
+
   const [board, setBoard] = useState([]);
   const [shape, setShape] = useState(null);
   const [score, setScore] = useState(0);
@@ -24,12 +27,10 @@ const TetrisGame = ({ levelId, onComplete }) => {
   const [gameOver, setGameOver] = useState(false);
   const [nextShape, setNextShape] = useState(null);
   const [dropInterval, setDropInterval] = useState(1000);
-  const [isPaused, setIsPaused] = useState(true); // 默认暂停
+  const [isPaused, setIsPaused] = useState(true);
 
   const boardRef = useRef([]);
   const shapeRef = useRef(null);
-  // 保持一个唯一的下落定时器。使用 setInterval 而不是 requestAnimationFrame，
-  // 避免开始/暂停时 effect 清理旧动画帧后没有稳定地重新调度下落。
   const dropTimerRef = useRef(null);
 
   const levelData = levels.find(l => l.id === levelId) || { targetScore: 1000, initialSpeed: 800 };
@@ -50,7 +51,7 @@ const TetrisGame = ({ levelId, onComplete }) => {
     setLevel(1);
     setGameOver(false);
     setDropInterval(levelData.initialSpeed || 800);
-    setIsPaused(true); // 初始暂停
+    setIsPaused(true);
     if (dropTimerRef.current) {
       clearInterval(dropTimerRef.current);
       dropTimerRef.current = null;
@@ -67,7 +68,6 @@ const TetrisGame = ({ levelId, onComplete }) => {
     };
   }, [initGame]);
 
-  // 锁定当前方块
   const lockShape = useCallback(() => {
     if (!shapeRef.current) return;
     let newBoard = merge(boardRef.current, shapeRef.current);
@@ -95,7 +95,6 @@ const TetrisGame = ({ levelId, onComplete }) => {
         setDropInterval(newInterval);
       }
     }
-    // 生成下一个
     const newShape = nextShape || getRandomShape();
     setShape(newShape);
     shapeRef.current = newShape;
@@ -108,43 +107,27 @@ const TetrisGame = ({ levelId, onComplete }) => {
     }
   }, [nextShape, rowsCleared, level, score, targetScore]);
 
-  // 移动
   const moveShape = useCallback(
     (dx, dy) => {
-      if (gameOver || isPaused || !shapeRef.current) {
-        return false;
-      }
-
+      if (gameOver || isPaused || !shapeRef.current) return false;
       const newShape = {
         ...shapeRef.current,
         row: shapeRef.current.row + dx,
         col: shapeRef.current.col + dy,
       };
-
-      if (
-        isValidPosition(
-          boardRef.current,
-          newShape,
-          newShape.row,
-          newShape.col
-        )
-      ) {
+      if (isValidPosition(boardRef.current, newShape, newShape.row, newShape.col)) {
         setShape(newShape);
         shapeRef.current = newShape;
         return true;
       }
-
-      // 只有向下移动失败时才锁定
       if (dx === 1 && dy === 0) {
         lockShape();
       }
-
       return false;
     },
     [gameOver, isPaused, lockShape]
   );
 
-  // 旋转
   const rotateShapeFn = useCallback(() => {
     if (gameOver || isPaused || !shapeRef.current) return;
     const rotated = rotateShape(shapeRef.current);
@@ -154,7 +137,6 @@ const TetrisGame = ({ levelId, onComplete }) => {
     }
   }, [gameOver, isPaused]);
 
-  // 硬降
   const hardDrop = useCallback(() => {
     if (gameOver || isPaused || !shapeRef.current) return;
     let newShape = { ...shapeRef.current };
@@ -166,7 +148,7 @@ const TetrisGame = ({ levelId, onComplete }) => {
     lockShape();
   }, [gameOver, isPaused, lockShape]);
 
-  // 游戏循环：只有游戏进行中才创建定时器；开始后该 effect 会立即创建定时器。
+  // 游戏循环
   useEffect(() => {
     if (gameOver || isPaused) {
       if (dropTimerRef.current) {
@@ -175,11 +157,9 @@ const TetrisGame = ({ levelId, onComplete }) => {
       }
       return;
     }
-
     dropTimerRef.current = setInterval(() => {
       moveShape(1, 0);
     }, dropInterval);
-
     return () => {
       if (dropTimerRef.current) {
         clearInterval(dropTimerRef.current);
@@ -188,11 +168,44 @@ const TetrisGame = ({ levelId, onComplete }) => {
     };
   }, [gameOver, isPaused, dropInterval, moveShape]);
 
-  // 切换暂停状态
   const togglePause = () => {
     if (gameOver) return;
     setIsPaused(prev => !prev);
   };
+
+  // ----- 动态尺寸计算 -----
+  // 预留顶部信息栏高度（约 50px）和底部控制区高度（根据屏幕调整）
+  const headerHeight = 50;
+  const controlHeight = screenWidth < 400 ? 140 : 180; // 小屏手机控制区更紧凑
+  const bottomPadding = 20;
+  const availableHeight = screenHeight - headerHeight - controlHeight - bottomPadding - bottomSafe;
+  const availableWidth = screenWidth - 20; // 左右留边距
+
+  // 棋盘列数 10，行数 20
+  const COLS = 10;
+  const ROWS = 20;
+
+  // 计算单元格大小：取宽度和高度适配的较小值
+  const cellSizeByWidth = availableWidth / (COLS + 2.8); // 预留侧面板空间（约2.8列宽）
+  const cellSizeByHeight = availableHeight / ROWS;
+  let cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
+  cellSize = Math.max(cellSize, 12); // 最小 12px，防止太小
+  cellSize = Math.min(cellSize, 36); // 最大 36px，防止过大
+
+  // 棋盘实际尺寸
+  const boardWidth = cellSize * COLS;
+  const boardHeight = cellSize * ROWS;
+
+  // 侧面板宽度（动态取 2~3 个单元格宽度）
+  const sidePanelWidth = Math.max(60, cellSize * 2.2);
+  const sidePanelHeight = boardHeight;
+
+  // 预览方块尺寸
+  const previewSize = cellSize * 0.6;
+
+  // 控制按钮尺寸
+  const btnSize = cellSize * 1.2;
+  const btnMinSize = 50;
 
   // 渲染单元格
   const renderCell = (row, col) => {
@@ -207,38 +220,31 @@ const TetrisGame = ({ levelId, onComplete }) => {
         key={`${row}-${col}`}
         style={[
           styles.cell,
-          {
-            width: cellSize,
-            height: cellSize,
-            backgroundColor: color,
-          },
+          { width: cellSize, height: cellSize, backgroundColor: color },
         ]}
       />
     );
   };
 
-  // 计算格子尺寸
-  const boardWidth = width * 0.7;
-  const boardHeight = height * 0.65;
-  const cellSize = Math.min(boardWidth / 10, boardHeight / 20, 32);
-
-  // 预览下一个方块
+  // 渲染下一个方块
   const renderNext = () => {
     if (!nextShape) return null;
-    const previewSize = cellSize * 0.6;
     return (
       <View style={styles.nextContainer}>
-        <Text style={styles.nextLabel}>下一个</Text>
+        <Text style={[styles.nextLabel, { fontSize: cellSize * 0.5 }]}>下一个</Text>
         {nextShape.matrix.map((row, r) => (
           <View key={r} style={{ flexDirection: 'row' }}>
             {row.map((cell, c) => (
-              <View key={c} style={{
-                width: previewSize,
-                height: previewSize,
-                backgroundColor: cell ? nextShape.color : 'transparent',
-                borderWidth: cell ? 0.5 : 0,
-                borderColor: '#555',
-              }} />
+              <View
+                key={c}
+                style={{
+                  width: previewSize,
+                  height: previewSize,
+                  backgroundColor: cell ? nextShape.color : 'transparent',
+                  borderWidth: cell ? 0.5 : 0,
+                  borderColor: '#555',
+                }}
+              />
             ))}
           </View>
         ))}
@@ -248,50 +254,77 @@ const TetrisGame = ({ levelId, onComplete }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      {/* 顶部信息栏 */}
+      <View style={[styles.header, { height: headerHeight }]}>
         <Text style={styles.headerText}>关卡 {levelId}</Text>
         <Text style={styles.headerText}>得分 {score}</Text>
         <Text style={styles.headerText}>目标 {targetScore}</Text>
       </View>
-      <View style={styles.gameArea}>
-        <View style={[styles.board, { width: cellSize * 10, height: cellSize * 20 }]}>
+
+      {/* 游戏主体：棋盘 + 侧面板 */}
+      <View style={[styles.gameArea, { height: availableHeight }]}>
+        <View style={[styles.board, { width: boardWidth, height: boardHeight }]}>
           {board.map((row, r) => (
             <View key={r} style={{ flexDirection: 'row' }}>
               {row.map((_, c) => renderCell(r, c))}
             </View>
           ))}
         </View>
-        <View style={styles.sidePanel}>
+
+        {/* 侧面板 */}
+        <View style={[styles.sidePanel, { width: sidePanelWidth, height: sidePanelHeight }]}>
           {renderNext()}
-          <Text style={styles.infoText}>等级 {level}</Text>
-          <Text style={styles.infoText}>消除 {rowsCleared} 行</Text>
+          <Text style={[styles.infoText, { fontSize: cellSize * 0.4 }]}>等级 {level}</Text>
+          <Text style={[styles.infoText, { fontSize: cellSize * 0.4 }]}>消除 {rowsCleared} 行</Text>
           <TouchableOpacity
-            style={[styles.controlBtn, styles.pauseBtn, (gameOver) && styles.disabledBtn]}
+            style={[
+              styles.controlBtn,
+              styles.pauseBtn,
+              { width: sidePanelWidth * 0.7, height: sidePanelWidth * 0.4 },
+              gameOver && styles.disabledBtn,
+            ]}
             onPress={togglePause}
             disabled={gameOver}
           >
-            <Text style={styles.controlText}>{isPaused ? `▶开始` : '⏸ 暂停'}</Text>
+            <Text style={[styles.controlText, { fontSize: cellSize * 0.4 }]}>
+              {isPaused ? '▶开始' : '⏸暂停'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.controls}>
+
+      {/* 底部控制按钮 */}
+      <View style={[styles.controls, { height: controlHeight, paddingBottom: bottomPadding * 2  + bottomSafe }]}>
         <View style={styles.controlRow}>
-          <TouchableOpacity style={styles.controlBtn} onPress={() => moveShape(0, -1)}>
-            <Text style={styles.controlText}>◀</Text>
+          <TouchableOpacity
+            style={[styles.controlBtn, { width: btnSize, height: btnSize }]}
+            onPress={() => moveShape(0, -1)}
+          >
+            <Text style={[styles.controlText, { fontSize: cellSize * 0.6 }]}>◀</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.controlBtn} onPress={rotateShapeFn}>
-            <Text style={styles.controlText}>↻</Text>
+          <TouchableOpacity
+            style={[styles.controlBtn, { width: btnSize, height: btnSize }]}
+            onPress={rotateShapeFn}
+          >
+            <Text style={[styles.controlText, { fontSize: cellSize * 0.6 }]}>↻</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.controlBtn} onPress={() => moveShape(0, 1)}>
-            <Text style={styles.controlText}>▶</Text>
+          <TouchableOpacity
+            style={[styles.controlBtn, { width: btnSize, height: btnSize }]}
+            onPress={() => moveShape(0, 1)}
+          >
+            <Text style={[styles.controlText, { fontSize: cellSize * 0.6 }]}>▶</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.controlRow}>
-          <TouchableOpacity style={[styles.controlBtn, styles.dropBtn]} onPress={hardDrop}>
-            <Text style={styles.controlText}>⤓ 落下</Text>
+          <TouchableOpacity
+            style={[styles.controlBtn, styles.dropBtn, { width: btnSize * 2, height: btnSize * 0.8 }]}
+            onPress={hardDrop}
+          >
+            <Text style={[styles.controlText, { fontSize: cellSize * 0.5 }]}>⤓ 落下</Text>
           </TouchableOpacity>
         </View>
       </View>
+
       {gameOver && (
         <TouchableOpacity style={styles.restartBtn} onPress={initGame}>
           <Text style={styles.restartText}>重新开始</Text>
@@ -305,13 +338,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a0a0a',
-    paddingTop: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 8,
+    alignItems: 'center',
     backgroundColor: '#1a1a1a',
+    paddingHorizontal: 10,
   },
   headerText: {
     color: '#fff',
@@ -319,17 +352,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   gameArea: {
-    flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
   },
   board: {
     backgroundColor: '#222',
     borderWidth: 2,
     borderColor: '#555',
-    marginRight: 10,
   },
   cell: {
     borderWidth: 0.5,
@@ -338,27 +369,27 @@ const styles = StyleSheet.create({
   sidePanel: {
     justifyContent: 'center',
     alignItems: 'center',
-    width: 80,
+    paddingHorizontal: 4,
+    marginLeft: 8,
   },
   nextContainer: {
     backgroundColor: '#1a1a1a',
-    padding: 8,
+    padding: 6,
     borderRadius: 8,
-    marginBottom: 20,
+    marginBottom: 12,
     alignItems: 'center',
   },
   nextLabel: {
     color: '#fff',
-    fontSize: 14,
     marginBottom: 4,
   },
   infoText: {
     color: '#ccc',
-    fontSize: 14,
     marginVertical: 2,
   },
   controls: {
-    paddingVertical: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#1a1a1a',
     borderTopWidth: 1,
     borderTopColor: '#333',
@@ -370,9 +401,7 @@ const styles = StyleSheet.create({
   },
   controlBtn: {
     backgroundColor: '#333',
-    width: 70,
-    height: 70,
-    marginHorizontal: 12,
+    marginHorizontal: 10,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 14,
@@ -381,19 +410,14 @@ const styles = StyleSheet.create({
   },
   controlText: {
     color: '#fff',
-    fontSize: 16,
     fontWeight: 'bold',
   },
   dropBtn: {
     backgroundColor: '#f00',
-    width: 120,
-    height: 60,
   },
   pauseBtn: {
-    width: 70,
-    height: 50,
-    marginTop: 10,
     backgroundColor: '#4CAF50',
+    marginTop: 8,
   },
   disabledBtn: {
     opacity: 0.5,
@@ -401,8 +425,8 @@ const styles = StyleSheet.create({
   restartBtn: {
     position: 'absolute',
     top: '40%',
-    left: '20%',
-    right: '20%',
+    left: '15%',
+    right: '15%',
     backgroundColor: '#f00',
     padding: 20,
     borderRadius: 12,
