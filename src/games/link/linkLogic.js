@@ -57,39 +57,46 @@ export function canConnect(board, r1, c1, r2, c2) {
   if (isLineClear(board, r1, c1, r2, c2)) return true;
 
   // 2. 单折连接 (One Corner)
-  // 拐点1: (r1, c2)
-  if (isLineClear(board, r1, c1, r1, c2) && isLineClear(board, r1, c2, r2, c2)) return true;
-  // 拐点2: (r2, c1)
-  if (isLineClear(board, r1, c1, r2, c1) && isLineClear(board, r2, c1, r2, c2)) return true;
+  // 拐点 (r1, c2) 必须为空
+  if (board[r1][c2] === 0) {
+    if (isLineClear(board, r1, c1, r1, c2) && isLineClear(board, r1, c2, r2, c2)) {
+      return true;
+    }
+  }
+  // 拐点 (r2, c1) 必须为空
+  if (board[r2][c1] === 0) {
+    if (isLineClear(board, r1, c1, r2, c1) && isLineClear(board, r2, c1, r2, c2)) {
+      return true;
+    }
+  }
 
   // 3. 双折连接 (Two Corners)
-  // 我们需要找到一个中间列 c，使得 (r1, c1) -> (r1, c) -> (r2, c) -> (r2, c2) 连通
-  // 或者找到一个中间行 r，使得 (r1, c1) -> (r, c1) -> (r, c2) -> (r2, c2) 连通
-  // 关键点：中间的转折点 (r1, c) 或 (r, c1) 等可以是棋盘外的点
-
   // 水平扫描：寻找中间列 c
-  for (let c = -1; c <= cols; c++) { // 从 -1 到 cols，包含外部
+  for (let c = -1; c <= cols; c++) {
     if (c === c1 || c === c2) continue;
-
-    // 检查路径: (r1, c1) -> (r1, c) -> (r2, c) -> (r2, c2)
-    // 注意：isLineClear 已经处理了边界外的空位逻辑
-    const seg1 = isLineClear(board, r1, c1, r1, c);
-    const seg2 = isLineClear(board, r1, c, r2, c);
-    const seg3 = isLineClear(board, r2, c, r2, c2);
-
-    if (seg1 && seg2 && seg3) return true;
+    // 检查两个转折点是否为空（如果在棋盘内）
+    if (c >= 0 && c < cols) {
+      if (board[r1][c] !== 0 || board[r2][c] !== 0) continue;
+    }
+    // 检查三段直线
+    if (isLineClear(board, r1, c1, r1, c) &&
+        isLineClear(board, r1, c, r2, c) &&
+        isLineClear(board, r2, c, r2, c2)) {
+      return true;
+    }
   }
 
   // 垂直扫描：寻找中间行 r
   for (let r = -1; r <= rows; r++) {
     if (r === r1 || r === r2) continue;
-
-    // 检查路径: (r1, c1) -> (r, c1) -> (r, c2) -> (r2, c2)
-    const seg1 = isLineClear(board, r1, c1, r, c1);
-    const seg2 = isLineClear(board, r, c1, r, c2);
-    const seg3 = isLineClear(board, r, c2, r2, c2);
-
-    if (seg1 && seg2 && seg3) return true;
+    if (r >= 0 && r < rows) {
+      if (board[r][c1] !== 0 || board[r][c2] !== 0) continue;
+    }
+    if (isLineClear(board, r1, c1, r, c1) &&
+        isLineClear(board, r, c1, r, c2) &&
+        isLineClear(board, r, c2, r2, c2)) {
+      return true;
+    }
   }
 
   return false;
