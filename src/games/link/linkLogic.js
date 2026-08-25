@@ -1,16 +1,97 @@
 // src/games/link/linkLogic.js
 
-// 检查两个格子是否相同且可连接
+// 辅助函数：检查两点之间直线是否畅通（包括棋盘外部）
+// board 是二维数组，r, c 是坐标
+// 如果 r < 0 || r >= rows || c < 0 || c >= cols，则视为空（0）
+function isLineClear(board, r1, c1, r2, c2) {
+  const rows = board.length;
+  const cols = board[0].length;
+
+  // 如果两点相同，直接返回 true
+  if (r1 === r2 && c1 === c2) return true;
+
+  // 如果不同行且不同列，不能直线连接
+  if (r1 !== r2 && c1 !== c2) return false;
+
+  if (r1 === r2) {
+    // 水平线
+    const minC = Math.min(c1, c2);
+    const maxC = Math.max(c1, c2);
+    for (let c = minC + 1; c < maxC; c++) {
+      // 如果点在棋盘内且不为0，则阻挡
+      if (r1 >= 0 && r1 < rows && c >= 0 && c < cols) {
+        if (board[r1][c] !== 0) return false;
+      }
+      // 如果点在棋盘外，视为空，继续
+    }
+    return true;
+  } else {
+    // 垂直线
+    const minR = Math.min(r1, r2);
+    const maxR = Math.max(r1, r2);
+    for (let r = minR + 1; r < maxR; r++) {
+      if (r >= 0 && r < rows && c1 >= 0 && c1 < cols) {
+        if (board[r][c1] !== 0) return false;
+      }
+    }
+    return true;
+  }
+}
+
 export function canConnect(board, r1, c1, r2, c2) {
+  const rows = board.length;
+  const cols = board[0].length;
+
+  // 边界检查
+  if (r1 < 0 || r1 >= rows || c1 < 0 || c1 >= cols) return false;
+  if (r2 < 0 || r2 >= rows || c2 < 0 || c2 >= cols) return false;
+
   if (r1 === r2 && c1 === c2) return false;
-  if (board[r1][c1] !== board[r2][c2]) return false;
-  if (board[r1][c1] === 0 || board[r2][c2] === 0) return false;
-  // 直线连接
-  if (isDirectConnect(board, r1, c1, r2, c2)) return true;
-  // 单折连接
-  if (isOneCornerConnect(board, r1, c1, r2, c2)) return true;
-  // 双折连接
-  if (isTwoCornerConnect(board, r1, c1, r2, c2)) return true;
+  const val1 = board[r1][c1];
+  const val2 = board[r2][c2];
+
+  if (val1 === 0 || val2 === 0) return false;
+  if (val1 !== val2) return false;
+
+  // 1. 直线连接
+  if (isLineClear(board, r1, c1, r2, c2)) return true;
+
+  // 2. 单折连接 (One Corner)
+  // 拐点1: (r1, c2)
+  if (isLineClear(board, r1, c1, r1, c2) && isLineClear(board, r1, c2, r2, c2)) return true;
+  // 拐点2: (r2, c1)
+  if (isLineClear(board, r1, c1, r2, c1) && isLineClear(board, r2, c1, r2, c2)) return true;
+
+  // 3. 双折连接 (Two Corners)
+  // 我们需要找到一个中间列 c，使得 (r1, c1) -> (r1, c) -> (r2, c) -> (r2, c2) 连通
+  // 或者找到一个中间行 r，使得 (r1, c1) -> (r, c1) -> (r, c2) -> (r2, c2) 连通
+  // 关键点：中间的转折点 (r1, c) 或 (r, c1) 等可以是棋盘外的点
+
+  // 水平扫描：寻找中间列 c
+  for (let c = -1; c <= cols; c++) { // 从 -1 到 cols，包含外部
+    if (c === c1 || c === c2) continue;
+
+    // 检查路径: (r1, c1) -> (r1, c) -> (r2, c) -> (r2, c2)
+    // 注意：isLineClear 已经处理了边界外的空位逻辑
+    const seg1 = isLineClear(board, r1, c1, r1, c);
+    const seg2 = isLineClear(board, r1, c, r2, c);
+    const seg3 = isLineClear(board, r2, c, r2, c2);
+
+    if (seg1 && seg2 && seg3) return true;
+  }
+
+  // 垂直扫描：寻找中间行 r
+  for (let r = -1; r <= rows; r++) {
+    if (r === r1 || r === r2) continue;
+
+    // 检查路径: (r1, c1) -> (r, c1) -> (r, c2) -> (r2, c2)
+    const seg1 = isLineClear(board, r1, c1, r, c1);
+    const seg2 = isLineClear(board, r, c1, r, c2);
+    const seg3 = isLineClear(board, r, c2, r2, c2);
+
+    if (seg1 && seg2 && seg3) return true;
+  }
+
   return false;
 }
 
@@ -69,24 +150,58 @@ function isTwoCornerConnect(board, r1, c1, r2, c2) {
 export function generateBoard(rows, cols, numTypes) {
   const total = rows * cols;
   if (total % 2 !== 0) throw new Error('棋盘格子数必须为偶数');
-  const pairs = total / 2;
-  const patterns = [];
-  for (let i = 0; i < pairs; i++) {
-    const type = (i % numTypes) + 1; // 图案编号从1开始
-    patterns.push(type, type);
+
+  let attempts = 0;
+  const maxAttempts = 100;
+
+  while (attempts < maxAttempts) {
+    const pairs = total / 2;
+    const patterns = [];
+    for (let i = 0; i < pairs; i++) {
+      const type = (i % numTypes) + 1;
+      patterns.push(type, type);
+    }
+    shuffle(patterns);
+
+    const board = [];
+    let idx = 0;
+    for (let r = 0; r < rows; r++) {
+      const row = [];
+      for (let c = 0; c < cols; c++) {
+        row.push(patterns[idx++]);
+      }
+      board.push(row);
+    }
+
+    // 检查是否有解
+    if (hasRemainingMoves(board)) {
+      return board;
+    }
+    attempts++;
   }
-  // 打乱
-  shuffle(patterns);
-  const board = [];
-  let idx = 0;
+
+  console.warn("Failed to generate a solvable board after max attempts.");
+  // 如果实在生成不出，返回一个随机棋盘，游戏可能会死锁
+  const fallbackBoard = [];
+  for (let r = 0; r < rows; r++) {
+    fallbackBoard.push(new Array(cols).fill(0)); // 或者重新生成随机
+  }
+  // 这里为了简单，重新生成一个随机棋盘，即使无解
+  const fallbackPatterns = [];
+  for (let i = 0; i < pairs; i++) {
+    fallbackPatterns.push((i % numTypes) + 1, (i % numTypes) + 1);
+  }
+  shuffle(fallbackPatterns);
+  let fIdx = 0;
+  const finalBoard = [];
   for (let r = 0; r < rows; r++) {
     const row = [];
     for (let c = 0; c < cols; c++) {
-      row.push(patterns[idx++]);
+      row.push(fallbackPatterns[fIdx++]);
     }
-    board.push(row);
+    finalBoard.push(row);
   }
-  return board;
+  return finalBoard;
 }
 
 function shuffle(arr) {
