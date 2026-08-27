@@ -3,17 +3,22 @@ import { useRouter } from 'expo-router';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import GameCard from '../components/GameCard';
 import { COLORS, SPACING } from '../constants/theme';
-import { GAME_LEVELS } from '../data/levels';
+import { levels as linkLevels } from '../games/link/levels';
+import { levels as matchLevels } from '../games/match/levels';
+import { levels as sheepLevels } from '../games/sheep/levels';
+import { levels as sokobanLevels } from '../games/sokoban/levels';
+import { levels as sudokuLevels } from '../games/sudoku/levels';
 import useUserStore from '../store/userSlice';
 
 // 游戏列表数据
 const games = [
-  { id: 'sudoku', title: '数独', icon: '🧩' },
-  { id: 'sokoban', title: '推箱子', icon: '📦' },
-  { id: 'link', title: '连连看', icon: '🔗' },
-  { id: 'sheep', title: '羊了个羊', icon: '🐑' },
-  { id: 'tetris', title: '俄罗斯方块', icon: '🧱' },
-  { id: 'match', title: '消消乐', icon: '🍬' },
+  { id: 'sudoku', title: '数独', icon: '🧩', totalLevels: sudokuLevels.length },
+  { id: 'sokoban', title: '推箱子', icon: '📦', totalLevels: sokobanLevels.length },
+  { id: 'link', title: '连连看', icon: '🔗', totalLevels: linkLevels.length },
+  { id: 'sheep', title: '羊了个羊', icon: '🐑', totalLevels: sheepLevels.length },
+  { id: 'tetris', title: '俄罗斯方块', icon: '🧱', freePlay: true },
+  { id: 'match', title: '消消乐', icon: '🍬', totalLevels: matchLevels.length },
+  { id: 'survival', title: '生存挑战', icon: '⚔️', freePlay: true },
 ];
 
 export default function HomeScreen() {
@@ -21,19 +26,30 @@ export default function HomeScreen() {
   const getCompletedCount = useUserStore((state) => state.getCompletedCount);
 
   const handlePress = (gameId) => {
+    if (gameId === 'survival') {
+      router.push('/game/survival');
+      return;
+    }
+    if (gameId === 'tetris') {
+      router.push('/game/tetris');
+      return;
+    }
     router.push(`/game/${gameId}`);
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>🎮 游戏大厅</Text>
+      <Text style={styles.leaderboardLink} onPress={() => router.push('/leaderboard')}>
+        🏆 排行榜
+      </Text>
       <FlatList
         data={games}
         numColumns={2}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
           const completed = getCompletedCount(item.id);
-          const total = GAME_LEVELS[item.id]?.total || 10;
+          const total = item.totalLevels || 0;
           return (
             <GameCard
               title={item.title}
@@ -41,6 +57,7 @@ export default function HomeScreen() {
               onPress={() => handlePress(item.id)}
               completedCount={completed}
               totalCount={total}
+              progressLabel={item.freePlay ? '自由模式 · 查看排行榜' : `已过 ${completed}/${total} 关`}
             />
           );
         }}
@@ -53,5 +70,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background, paddingTop: SPACING.xl },
   header: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: SPACING.md },
+  leaderboardLink: { color: COLORS.primary, fontSize: 16, fontWeight: 'bold', textAlign: 'center', marginBottom: SPACING.sm },
   grid: { padding: SPACING.md },
 });

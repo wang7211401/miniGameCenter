@@ -2,19 +2,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { levels } from './levels';
+import useUserStore from '../../store/userSlice';
 import {
-  clearRows,
-  collide,
-  createBoard,
-  getNextShape,
-  getRandomShape,
-  isValidPosition,
-  merge,
-  rotateShape,
+    clearRows,
+    collide,
+    createBoard,
+    getNextShape,
+    getRandomShape,
+    isValidPosition,
+    merge,
+    rotateShape,
 } from './tetrisLogic';
 
-const TetrisGame = ({ levelId, onComplete }) => {
+const TetrisGame = () => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const bottomSafe = insets.bottom || 0;
@@ -28,13 +28,11 @@ const TetrisGame = ({ levelId, onComplete }) => {
   const [nextShape, setNextShape] = useState(null);
   const [dropInterval, setDropInterval] = useState(1000);
   const [isPaused, setIsPaused] = useState(true);
+  const recordTetrisScore = useUserStore(state => state.recordTetrisScore);
 
   const boardRef = useRef([]);
   const shapeRef = useRef(null);
   const dropTimerRef = useRef(null);
-
-  const levelData = levels.find(l => l.id === levelId) || { targetScore: 1000, initialSpeed: 800 };
-  const targetScore = levelData.targetScore || 1000;
 
   // 初始化游戏
   const initGame = useCallback(() => {
@@ -50,13 +48,13 @@ const TetrisGame = ({ levelId, onComplete }) => {
     setRowsCleared(0);
     setLevel(1);
     setGameOver(false);
-    setDropInterval(levelData.initialSpeed || 800);
+    setDropInterval(800);
     setIsPaused(true);
     if (dropTimerRef.current) {
       clearInterval(dropTimerRef.current);
       dropTimerRef.current = null;
     }
-  }, [levelData.initialSpeed]);
+  }, []);
 
   useEffect(() => {
     initGame();
@@ -75,19 +73,14 @@ const TetrisGame = ({ levelId, onComplete }) => {
     newBoard = clearedBoard;
     boardRef.current = newBoard;
     setBoard(newBoard);
+    const points = [0, 40, 100, 300, 1200][cleared] || 0;
+    const newScore = score + points * level;
+    if (cleared > 0) {
+      setScore(newScore);
+    }
     if (cleared > 0) {
       const newRowsCleared = rowsCleared + cleared;
       setRowsCleared(newRowsCleared);
-      const points = [0, 40, 100, 300, 1200][cleared] || 0;
-      const newScore = score + points * level;
-      setScore(newScore);
-      if (newScore >= targetScore) {
-        Alert.alert('🎉 过关！', `得分 ${newScore}，达到目标 ${targetScore}`);
-        onComplete && onComplete(3);
-        setGameOver(true);
-        setIsPaused(true);
-        return;
-      }
       const newLevel = Math.floor(newRowsCleared / 10) + 1;
       if (newLevel > level) {
         setLevel(newLevel);
@@ -101,11 +94,13 @@ const TetrisGame = ({ levelId, onComplete }) => {
     const next = getNextShape();
     setNextShape(next);
     if (collide(boardRef.current, newShape)) {
-      Alert.alert('💔 游戏结束', `得分 ${score}`);
+      const finalScore = newScore;
+      recordTetrisScore(finalScore);
+      Alert.alert('💔 游戏结束', `最终得分 ${finalScore}`);
       setGameOver(true);
       setIsPaused(true);
     }
-  }, [nextShape, rowsCleared, level, score, targetScore]);
+  }, [nextShape, rowsCleared, level, score, recordTetrisScore]);
 
   const moveShape = useCallback(
     (dx, dy) => {
@@ -256,9 +251,8 @@ const TetrisGame = ({ levelId, onComplete }) => {
     <View style={styles.container}>
       {/* 顶部信息栏 */}
       <View style={[styles.header, { height: headerHeight }]}>
-        <Text style={styles.headerText}>关卡 {levelId}</Text>
         <Text style={styles.headerText}>得分 {score}</Text>
-        <Text style={styles.headerText}>目标 {targetScore}</Text>
+        <Text style={styles.headerText}>消除 {rowsCleared} 行</Text>
       </View>
 
       {/* 游戏主体：棋盘 + 侧面板 */}

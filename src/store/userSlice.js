@@ -8,6 +8,34 @@ const useUserStore = create(
     (set, get) => ({
       // 存储结构：{ gameId: { currentLevel: number, stars: { levelId: number } } }
       progress: {},
+      scoreHistory: [],
+      survivalHistory: [],
+      recordTetrisScore: (score) => {
+        if (!Number.isFinite(score) || score < 0) return;
+        const entry = {
+          score: Math.floor(score),
+          playedAt: new Date().toISOString(),
+        };
+        set((state) => ({
+          scoreHistory: [...state.scoreHistory, entry]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 20),
+        }));
+      },
+      getTetrisScores: () => get().scoreHistory,
+      recordSurvivalTime: (seconds) => {
+        if (!Number.isFinite(seconds) || seconds < 0) return;
+        const entry = {
+          seconds: Math.floor(seconds),
+          playedAt: new Date().toISOString(),
+        };
+        set((state) => ({
+          survivalHistory: [...(state.survivalHistory || []), entry]
+            .sort((a, b) => b.seconds - a.seconds)
+            .slice(0, 20),
+        }));
+      },
+      getSurvivalTimes: () => get().survivalHistory,
       setProgress: (gameId, levelId, stars) => {
         const current = get().progress[gameId] || { currentLevel: 1, stars: {} };
         const updatedStars = { ...current.stars, [levelId]: stars };

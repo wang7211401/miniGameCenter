@@ -1,13 +1,13 @@
 import { BORDER_RADIUS, COLORS, SPACING } from '@/constants/theme';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const GameCard = ({ title, icon, onPress, completedCount, totalCount }) => {
+const GameCard = ({ title, icon, onPress, completedCount, totalCount, progressLabel }) => {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.iconContainer}>{icon}</View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.progress}>
-        {completedCount}/{totalCount}
+        {progressLabel || `${completedCount}/${totalCount}`}
       </Text>
     </TouchableOpacity>
   );

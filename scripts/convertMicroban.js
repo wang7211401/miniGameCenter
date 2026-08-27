@@ -1,64 +1,334 @@
 const fs = require('fs');
 const path = require('path');
 
-// 读取项目根目录下的 microban.txt
+// ============================================================
+// 读取 Microban 原始文件
+// ============================================================
+
 const filePath = path.join(__dirname, '..', 'microban.txt');
+
+if (!fs.existsSync(filePath)) {
+  console.error(`❌ 找不到文件：${filePath}`);
+  process.exit(1);
+}
+
 const text = fs.readFileSync(filePath, 'utf-8');
 
+// ============================================================
 // 字符映射
-const CHAR_MAP = { '#':1, ' ':0, '.':2, '$':3, '@':4, '*':5, '+':6 };
+// ============================================================
+//
+// # = 墙
+// 空格 = 地板
+// . = 目标点
+// $ = 箱子
+// @ = 玩家
+// * = 箱子 + 目标点
+// + = 玩家 + 目标点
+//
+// 数字编码保持你原来的格式
+// ============================================================
 
-// 分割行
-const lines = text.split('\n').map(line => line.trim());
+const CHAR_MAP = {
+  '#': 1,
+  ' ': 0,
+  '.': 2,
+  '$': 3,
+  '@': 4,
+  '*': 5,
+  '+': 6,
+};
 
+// ============================================================
+// 读取行
+// ============================================================
+//
+// !!! 这里绝对不能使用 trim()
+// 因为 Sokoban 地图中的前导空格具有实际意义
+//
+// 只删除 Windows 换行符 \r
+// ============================================================
+
+const lines = text
+  .split(/\n/)
+  .map((line) => line.replace(/\r$/, ''));
+
+// ============================================================
+// 判断是不是关卡标题
+// ============================================================
+
+function isLevelHeader(line) {
+  const trimmed = line.trim();
+
+  return /^Level\s*\d+/i.test(trimmed);
+}
+
+// ============================================================
+// 判断是不是注释
+// ============================================================
+//
+// Microban 中存在：
+//
+// 'Duh!'
+// 'Lockdown'
+// 'from (Original 18)'
+//
+// 这些不是地图
+// ============================================================
+
+function isComment(line) {
+  const trimmed = line.trim();
+
+  return (
+    trimmed.startsWith(';') ||
+    trimmed.startsWith("'")
+  );
+}
+
+// ============================================================
+// 判断是不是纯数字
+// ============================================================
+
+function isNumberLine(line) {
+  return /^\s*\d+\s*$/.test(line);
+}
+
+// ============================================================
+// 判断是不是地图行
+// ============================================================
+//
+// 地图允许：
+// # 空格 . $ @ * +
+//
+// 注意：这里不能 trim 后再保存
+// ============================================================
+
+function isMapLine(line) {
+  return /[#@$.*+]/.test(line);
+}
+
+// ============================================================
 // 解析关卡
-const levels = [];
-let current = [];
-let inLevel = false;
+// ============================================================
 
-for (const line of lines) {
-  // 跳过空行和注释（以 ';' 或 'Level' 开头，或纯数字）
-  if (line === '' || /^Level\s*\d+/i.test(line) || /^[';]/.test(line) || /^\d+$/.test(line)) {
-    if (current.length > 0) {
-      levels.push([...current]);
-      current = [];
-    }
+const levels = [];
+
+let current = [];
+let currentLevelNumber = null;
+
+function pushCurrentLevel() {
+  if (current.length === 0) {
+    return;
+  }
+
+  levels.push({
+    level: currentLevelNumber,
+    grid: [...current],
+  });
+
+  current = [];
+  currentLevelNumber = null;
+}
+
+for (let i = 0; i < lines.length; i++) {
+  const line = lines[i];
+
+  // 用于判断的版本
+  const trimmed = line.trim();
+
+  // ----------------------------------------------------------
+  // 空行
+  // ----------------------------------------------------------
+
+  if (trimmed === '') {
+    // 空行表示一个关卡可能结束
+    //
+    // 但是不要立即强制结束也没关系，
+    // 后面的 Level 标题同样会负责切换。
     continue;
   }
-  // 如果行包含地图字符，则加入当前关卡
-  if (/[#@$.*+]/.test(line)) {
+
+  // ----------------------------------------------------------
+  // Level 标题
+  // ----------------------------------------------------------
+
+  if (isLevelHeader(line)) {
+    // 新 Level 开始之前保存上一关
+    pushCurrentLevel();
+
+    const match = line.match(/Level\s*(\d+)/i);
+
+    if (match) {
+      currentLevelNumber = Number(match[1]);
+    }
+
+    continue;
+  }
+
+  // ----------------------------------------------------------
+  // 注释
+  // ----------------------------------------------------------
+
+  if (isComment(line)) {
+    // 注释可能出现在 Level 前后
+    //
+    // 如果当前已经有地图，则说明上一关结束
+    if (current.length > 0) {
+      pushCurrentLevel();
+    }
+
+    continue;
+  }
+
+  // ----------------------------------------------------------
+  // 纯数字
+  // ----------------------------------------------------------
+
+  if (isNumberLine(line)) {
+    continue;
+  }
+
+  // ----------------------------------------------------------
+  // 地图
+  // ----------------------------------------------------------
+
+  if (isMapLine(line)) {
+    // !!! 这里直接保存原始 line
+    // !!! 不允许 trim()
     current.push(line);
   }
 }
-// 处理最后一个关卡
-if (current.length > 0) levels.push(current);
+
+// ============================================================
+// 保存最后一个关卡
+// ============================================================
+
+pushCurrentLevel();
 
 console.log(`📦 提取到 ${levels.length} 个关卡`);
 
-// 转换为字符串格式
+// ============================================================
+// 地图转换
+// ============================================================
+
 function gridToStr(grid) {
-  const maxWidth = Math.max(...grid.map(row => row.length));
-  const padded = grid.map(row => row.padEnd(maxWidth, ' '));
-  return padded.map(row => row.split('').map(ch => CHAR_MAP[ch] ?? 0).join('')).join('|');
+  if (!grid || grid.length === 0) {
+    return '';
+  }
+
+  // 找到最长行
+  const maxWidth = Math.max(
+    ...grid.map((row) => row.length)
+  );
+
+  // 所有行补齐到相同宽度
+  //
+  // 注意：
+  // padEnd() 可以保留原有的前导空格
+  // 同时补齐末尾缺少的空格
+  //
+  const padded = grid.map((row) =>
+    row.padEnd(maxWidth, ' ')
+  );
+
+  // 转成数字字符串
+  return padded
+    .map((row) =>
+      row
+        .split('')
+        .map((ch) => CHAR_MAP[ch] ?? 0)
+        .join('')
+    )
+    .join('|');
 }
 
-const levelStrings = levels.map(gridToStr);
+// ============================================================
+// 转换所有关卡
+// ============================================================
 
-// 只取前 100 个（Microban 有 150+，我们只取前 100）
-// const finalLevels = levelStrings.slice(0, 100);
+const levelStrings = levels.map((level) =>
+  gridToStr(level.grid)
+);
+
+// ============================================================
+// 输出信息
+// ============================================================
+
 console.log(`✅ 输出 ${levelStrings.length} 个关卡`);
 
-// 写入文件
-const outputDir = path.join(__dirname, '..', 'src', 'games', 'sokoban');
-if (!fs.existsSync(outputDir)) {
-  fs.mkdirSync(outputDir, { recursive: true });
+if (levelStrings.length !== levels.length) {
+  console.warn(
+    `⚠️ 关卡数量异常：解析 ${levels.length}，输出 ${levelStrings.length}`
+  );
 }
-const outputFile = path.join(outputDir, 'microbanLevels.js');
+
+// ============================================================
+// 检查第 8 关
+// ============================================================
+
+if (levels[7]) {
+  console.log('\n🔍 第 8 关原始地图：');
+
+  console.log(
+    levels[7].grid
+      .map((row) => JSON.stringify(row))
+      .join('\n')
+  );
+
+  console.log('\n🔍 第 8 关转换结果：');
+
+  console.log(levelStrings[7]);
+}
+
+// ============================================================
+// 创建输出目录
+// ============================================================
+
+const outputDir = path.join(
+  __dirname,
+  '..',
+  'src',
+  'games',
+  'sokoban'
+);
+
+if (!fs.existsSync(outputDir)) {
+  fs.mkdirSync(outputDir, {
+    recursive: true,
+  });
+}
+
+// ============================================================
+// 输出文件
+// ============================================================
+
+const outputFile = path.join(
+  outputDir,
+  'microbanLevels.js'
+);
+
+// ============================================================
+// 生成 JS 文件
+// ============================================================
+
 const content = `// 从 Microban 文本文件自动转换生成
 // 生成时间: ${new Date().toISOString()}
 
-export const levelStrings = ${JSON.stringify(levelStrings, null, 2)};
+export const levelStrings = ${JSON.stringify(
+  levelStrings,
+  null,
+  2
+)};
 `;
 
-fs.writeFileSync(outputFile, content, 'utf-8');
-console.log(`✅ 已生成 ${outputFile}`);
+// ============================================================
+// 写入
+// ============================================================
+
+fs.writeFileSync(
+  outputFile,
+  content,
+  'utf-8'
+);
+
+console.log(`\n✅ 已生成：${outputFile}`);

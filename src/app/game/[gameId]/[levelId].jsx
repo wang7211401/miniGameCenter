@@ -31,7 +31,7 @@ export default function GameScreen() {
       GameComponent = LinkGame;
       break;
     case 'sheep':
-      GameComponent = SheepGame; // 后续实现
+      GameComponent = SheepGame;
       break;
     case 'tetris':
       GameComponent = TetrisGame;
@@ -39,6 +39,7 @@ export default function GameScreen() {
     case 'match':
       GameComponent = MatchGame;
       break;
+
     default:
       return (
         <View style={styles.container}>

@@ -39,6 +39,8 @@ function isLineClear(board, r1, c1, r2, c2) {
 }
 
 export function canConnect(board, r1, c1, r2, c2) {
+  if (!board?.length || !board[0]?.length) return false;
+
   const rows = board.length;
   const cols = board[0].length;
 
@@ -221,6 +223,8 @@ function shuffle(arr) {
 
 // 检查是否还有可消除的对
 export function hasRemainingMoves(board) {
+  if (!board?.length || !board[0]?.length) return false;
+
   const rows = board.length, cols = board[0].length;
   for (let r1 = 0; r1 < rows; r1++) {
     for (let c1 = 0; c1 < cols; c1++) {

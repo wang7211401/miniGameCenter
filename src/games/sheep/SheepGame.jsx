@@ -1,15 +1,37 @@
-import { useEffect, useMemo, useState } from 'react';
+// src/games/sheep/SheepGame.jsx
+
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS, SPACING } from '../../constants/theme';
-import { levels } from './levels';
-import { countTotalCards, generateLevel, getAvailableCards, isCardBlocked } from './sheepLogic';
+import { getLevelConfig } from './levels';
+import { countTotalCards, generateLevel, getAvailableCards } from './sheepLogic';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-// Define emojis explicitly to ensure consistency
 const EMOJIS = ['🍎', '🍊', '🍋', '🍇', '🍉', '🍓', '🍑', '🍒', '🥝', '🍍', '🥭', '🍌'];
 
+function removeCompletedTriplets(cards) {
+  const counts = new Map();
+  cards.forEach(type => counts.set(type, (counts.get(type) || 0) + 1));
+
+  const remaining = [...cards];
+  for (const [type, count] of counts) {
+    const tripletCount = Math.floor(count / 3);
+    let toRemove = tripletCount * 3;
+    if (toRemove === 0) continue;
+
+    for (let index = remaining.length - 1; index >= 0 && toRemove > 0; index--) {
+      if (remaining[index] === type) {
+        remaining.splice(index, 1);
+        toRemove -= 1;
+      }
+    }
+  }
+  return remaining;
+}
+
 const SheepGame = ({ levelId, onComplete }) => {
+  // ---------- 状态 ----------
   const [grids, setGrids] = useState([]);
   const [removedSet, setRemovedSet] = useState(new Set());
   const [slot, setSlot] = useState([]);
@@ -17,38 +39,48 @@ const SheepGame = ({ levelId, onComplete }) => {
   const [startTime, setStartTime] = useState(null);
   const [gameOver, setGameOver] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [available, setAvailable] = useState([]); // 缓存可用卡片
 
-  // Initialize Level
-  useEffect(() => {
-    const level = levels.find(l => l.id === levelId);
-    if (!level) return;
+  const winTimeoutRef = useRef(null);
+  const completedRef = useRef(false);
 
-    // Generate new level
-    const newGrids = generateLevel(level.layers, level.rows, level.cols, level.numTypes);
+  // ---------- 初始化关卡 ----------
+  const resetLevel = useCallback(() => {
+    const config = getLevelConfig(levelId);
+    const newGrids = generateLevel(config.layers, config.rows, config.cols, config.numTypes);
     setGrids(newGrids);
     setRemovedSet(new Set());
     setSlot([]);
-    const total = countTotalCards(newGrids);
-    setTotalCards(total);
+    setTotalCards(countTotalCards(newGrids));
     setStartTime(Date.now());
     setGameOver(false);
+    setIsAnimating(false);
+    completedRef.current = false;
+    // 后续 useEffect 会重新计算 available
   }, [levelId]);
 
-  // Memoize available cards to prevent recalculating on every render unless grids/removedSet change
-  const availableKeys = useMemo(() => {
-    if (!grids.length) return new Set();
-    const available = getAvailableCards(grids, removedSet);
-    return new Set(available.map(c => c.key));
+  useEffect(() => {
+    resetLevel();
+    return () => {
+      if (winTimeoutRef.current) clearTimeout(winTimeoutRef.current);
+    };
+  }, [resetLevel]);
+
+  // ---------- 更新可用卡片（缓存） ----------
+  useEffect(() => {
+    if (!grids.length) return;
+    const av = getAvailableCards(grids, removedSet);
+    setAvailable(av);
   }, [grids, removedSet]);
 
-  const handleCardPress = (layer, row, col, key, type) => {
+  // ---------- 核心点击处理 ----------
+  const handleCardPress = useCallback((layer, row, col, key, type) => {
     if (gameOver || isAnimating) return;
-    if (removedSet.has(key)) return;
 
-    // Double-check blocking status locally for performance
-    if (isCardBlocked(grids, layer, row, col, removedSet)) return;
+    // 检查是否真正可用（利用缓存 available）
+    const isValid = available.some(c => c.key === key);
+    if (!isValid) return;
 
-    // Slot full check
     if (slot.length >= 7) {
       Alert.alert('槽位已满', '无法继续添加卡片');
       return;
@@ -56,116 +88,107 @@ const SheepGame = ({ levelId, onComplete }) => {
 
     setIsAnimating(true);
 
-    // 1. Add to slot
-    const newSlot = [...slot, type];
+    // 更新棋盘（深拷贝）
+    const newGrids = grids.map(layerGrid => layerGrid.map(row => [...row]));
+    newGrids[layer][row][col] = 0;
 
-    // 2. Mark as removed from board
+    // 更新移除集合
     const newRemoved = new Set(removedSet);
     newRemoved.add(key);
 
-    // 3. Check for Triplet Elimination
-    const countMap = {};
-    newSlot.forEach(t => { countMap[t] = (countMap[t] || 0) + 1; });
+    // 更新槽位并消除三元组
+    const newSlot = [...slot, type];
+    const finalSlot = removeCompletedTriplets(newSlot);
 
-    let finalSlot = newSlot;
-    let foundThree = false;
-
-    for (let t in countMap) {
-      if (countMap[t] >= 3) {
-        // Remove 3 instances of this type
-        let removed = 0;
-        const filtered = finalSlot.filter(item => {
-          if (item === parseInt(t) && removed < 3) {
-            removed++;
-            return false;
-          }
-          return true;
-        });
-        finalSlot = filtered;
-        foundThree = true;
-        break; // Only remove one triplet per click to match standard rules
-      }
-    }
-
-    // Update State
-    setSlot(finalSlot);
+    // 批量更新状态
+    setGrids(newGrids);
     setRemovedSet(newRemoved);
+    setSlot(finalSlot);
     setIsAnimating(false);
 
-    // 4. Check Win Condition
+    // 胜利判定
     if (newRemoved.size === totalCards && finalSlot.length === 0) {
       handleWin();
       return;
     }
 
-    // 5. Check Loss Condition (No moves left)
-    // We need to wait for state update to calculate new available cards, 
-    // but we can pass the newRemoved set directly to the logic function for immediate check
-    const nextAvailable = getAvailableCards(grids, newRemoved);
+    // 失败判定（无可用卡片且未完成）
+    const nextAvailable = getAvailableCards(newGrids, newRemoved);
     if (nextAvailable.length === 0 && newRemoved.size < totalCards) {
       Alert.alert('💔 无可用卡片', '游戏结束，请重试');
-      // Reset Level
-      const level = levels.find(l => l.id === levelId);
-      const newGrids = generateLevel(level.layers, level.rows, level.cols, level.numTypes);
-      setGrids(newGrids);
-      setRemovedSet(new Set());
-      setSlot([]);
-      setTotalCards(countTotalCards(newGrids));
-      setStartTime(Date.now());
-      setGameOver(false);
-    }else if (newRemoved.size === totalCards && finalSlot.length > 0) {
-      Alert.alert('💔 无法完全消除', '槽位还有卡片未配成三张，请重试');
-      // 重置关卡（与上述重置逻辑相同）
-      const level = levels.find(l => l.id === levelId);
-      const newGrids = generateLevel(level.layers, level.rows, level.cols, level.numTypes);
-      setGrids(newGrids);
-      setRemovedSet(new Set());
-      setSlot([]);
-      setTotalCards(countTotalCards(newGrids));
-      setStartTime(Date.now());
-      setGameOver(false);
+      resetLevel();
       return;
     }
-  };
+    if (newRemoved.size === totalCards && finalSlot.length > 0) {
+      Alert.alert('💔 无法完全消除', '槽位还有卡片未配成三张，请重试');
+      resetLevel();
+      return;
+    }
+  }, [grids, removedSet, slot, totalCards, gameOver, isAnimating, available, resetLevel]);
 
-  const handleWin = () => {
-    const elapsed = (Date.now() - startTime) / 1000;
+  // ---------- 胜利处理 ----------
+  const handleWin = useCallback(() => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    const elapsed = startTime ? (Date.now() - startTime) / 1000 : 0;
     let stars = 3;
     if (elapsed > 60) stars = 2;
     if (elapsed > 120) stars = 1;
-
     setGameOver(true);
-    setTimeout(() => {
+    winTimeoutRef.current = setTimeout(() => {
       Alert.alert('🎉 过关！', `用时 ${Math.round(elapsed)} 秒，获得 ${stars} 星`, [
         { text: '确定', onPress: () => onComplete && onComplete(stars) }
       ]);
     }, 300);
-  };
+  }, [startTime, onComplete]);
 
-  // Dynamic Sizing
+  // ---------- 动态尺寸 ----------
   const cols = grids[0]?.[0]?.length || 4;
   const rows = grids[0]?.length || 4;
   const padding = 20;
-  const maxCardSize = 60;
+  const maxCardSize = 65;
   const minCardSize = 36;
-
   let cardSize = Math.min((width - padding * 2 - 40) / cols, maxCardSize);
   cardSize = Math.max(cardSize, minCardSize);
-
-  // Visual layer offset for 3D effect
   const layerOffset = cardSize * 0.2;
 
-  const renderCard = (layer, row, col) => {
+  // ---------- 渲染卡片 ----------
+  const renderCard = useCallback((layer, row, col) => {
     const val = grids[layer]?.[row]?.[col];
-    if (!val) return null; // Empty cell
-
     const key = `${layer},${row},${col}`;
-    const isRemoved = removedSet.has(key);
-    const isAvailable = availableKeys.has(key);
+    if (val === 0 || removedSet.has(key)) {
+      return <View key={key} style={{ width: cardSize, height: cardSize, margin: 2 }} pointerEvents="none" />;
+    }
+    const isAvailable = available.some(c => c.key === key);
 
-    // If removed, render nothing or a ghost element to maintain layout if needed. 
-    // Here we return null to hide it completely, which works because the grid structure is absolute.
-    if (isRemoved) return null;
+    // 不可用卡片不能拦截下面层的触摸事件。
+    // 原来的 TouchableOpacity 即使 onPress 中 return，也会先吃掉触摸，
+    // 导致下面真正可用的卡片无法点击。
+    if (!isAvailable) {
+      return (
+        <View
+          key={key}
+          style={[
+            styles.card,
+            {
+              width: cardSize,
+              height: cardSize,
+              margin: 2,
+              backgroundColor: '#E0E0E0',
+              borderColor: '#CCC',
+              borderWidth: 2,
+              shadowOpacity: 0.1,
+              shadowOffset: { width: 0, height: 2 },
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <Text style={[styles.cardText, { fontSize: cardSize * 0.5 }]}>
+            {EMOJIS[(val - 1) % EMOJIS.length]}
+          </Text>
+        </View>
+      );
+    }
 
     return (
       <TouchableOpacity
@@ -175,7 +198,7 @@ const SheepGame = ({ levelId, onComplete }) => {
           {
             width: cardSize,
             height: cardSize,
-            // Visual hierarchy: Available cards pop out, blocked are dull
+            margin: 2,
             backgroundColor: isAvailable ? '#FFD700' : '#E0E0E0',
             borderColor: isAvailable ? '#B8860B' : '#CCC',
             borderWidth: 2,
@@ -184,32 +207,25 @@ const SheepGame = ({ levelId, onComplete }) => {
           },
         ]}
         onPress={() => handleCardPress(layer, row, col, key, val)}
-        disabled={!isAvailable}
-        activeOpacity={isAvailable ? 0.7 : 1}
+        activeOpacity={0.7}
       >
-        <Text style={[styles.cardText, { fontSize: cardSize * 0.5 }]}>{EMOJIS[(val - 1) % EMOJIS.length]}</Text>
+        <Text style={[styles.cardText, { fontSize: cardSize * 0.5 }]}>
+          {EMOJIS[(val - 1) % EMOJIS.length]}
+        </Text>
       </TouchableOpacity>
     );
-  };
+  }, [grids, removedSet, available, cardSize, handleCardPress]);
 
-  const renderLayer = (layerIndex) => {
+  // ---------- 渲染层 ----------
+  const renderLayer = useCallback((layerIndex) => {
     const grid = grids[layerIndex];
     if (!grid) return null;
-
-    // Calculate offset for 3D stacking
     const offset = layerIndex * layerOffset;
-
     return (
       <View
         key={layerIndex}
-        style={[
-          styles.layer,
-          {
-            top: offset,
-            left: offset,
-            zIndex: layerIndex // Higher index = higher in stack
-          }
-        ]}
+        pointerEvents="box-none"
+        style={[styles.layer, { top: offset, left: offset, zIndex: layerIndex }]}
       >
         {grid.map((row, r) => (
           <View key={r} style={styles.row}>
@@ -218,12 +234,13 @@ const SheepGame = ({ levelId, onComplete }) => {
         ))}
       </View>
     );
-  };
+  }, [grids, layerOffset, renderCard]);
 
-  // Calculate board container size
+  // 计算棋盘尺寸
   const boardWidth = cols * (cardSize + 4) + (grids.length - 1) * layerOffset;
   const boardHeight = rows * (cardSize + 4) + (grids.length - 1) * layerOffset;
 
+  // ---------- 主界面 ----------
   return (
     <View style={styles.container}>
       <Text style={styles.title}>羊了个羊 - 第{levelId}关</Text>
@@ -244,6 +261,7 @@ const SheepGame = ({ levelId, onComplete }) => {
   );
 };
 
+// ---- 样式（与原版一致，略作调整） ----
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background, alignItems: 'center', paddingTop: SPACING.md },
   title: { fontSize: 20, fontWeight: 'bold', marginBottom: 8 },
@@ -252,7 +270,6 @@ const styles = StyleSheet.create({
   layer: { position: 'absolute' },
   row: { flexDirection: 'row' },
   card: {
-    margin: 2,
     borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',

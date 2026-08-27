@@ -21,31 +21,38 @@ const SokobanGame = ({ levelId, onComplete }) => {
   const [map, setMap] = useState([]);
   const [moves, setMoves] = useState(0);
   const [playerPos, setPlayerPos] = useState(null);
+  const [gameWon, setGameWon] = useState(false);
 
-  useEffect(() => {
+  const resetLevel = () => {
     const level = levels.find(l => l.id === levelId);
     if (!level) return;
     const initialMap = level.map.map(row => [...row]);
     setMap(initialMap);
     setMoves(0);
-    const pos = findPlayer(initialMap);
-    setPlayerPos(pos);
+    setPlayerPos(findPlayer(initialMap));
+    setGameWon(false);
+  };
+
+  useEffect(() => {
+    resetLevel();
   }, [levelId]);
 
   const handleMove = (dir) => {
-    if (!playerPos) return;
+    if (!playerPos || gameWon) return;
     const [r, c] = playerPos;
     const newMap = movePlayer(map, r, c, dir);
     if (newMap) {
+      const newMoves = moves + 1;
       setMap(newMap);
-      setMoves(moves + 1);
+      setMoves(newMoves);
       const newPos = findPlayer(newMap);
       setPlayerPos(newPos);
       if (checkWin(newMap)) {
         let stars = 3;
-        if (moves > 20) stars = 2;
-        if (moves > 50) stars = 1;
-        Alert.alert('🎉 过关！', `用了 ${moves} 步，获得 ${stars} 星`);
+        if (newMoves > 20) stars = 2;
+        if (newMoves > 50) stars = 1;
+        setGameWon(true);
+        Alert.alert('🎉 过关！', `用了 ${newMoves} 步，获得 ${stars} 星`);
         onComplete && onComplete(stars);
       }
     }
@@ -87,6 +94,9 @@ const SokobanGame = ({ levelId, onComplete }) => {
         </View>
       </View>
       <Text style={styles.moves}>步数: {moves}</Text>
+      <TouchableOpacity style={styles.restartBtn} onPress={resetLevel}>
+        <Text style={styles.restartText}>重新开始</Text>
+      </TouchableOpacity>
     </GestureHandlerRootView>
   );
 };
@@ -118,6 +128,14 @@ const styles = StyleSheet.create({
   },
   dirText: { color: '#FFF', fontSize: 24, fontWeight: 'bold' },
   moves: { marginTop: SPACING.md, fontSize: 18 },
+  restartBtn: {
+    marginTop: SPACING.md,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: '#666',
+    borderRadius: 8,
+  },
+  restartText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
 });
 
 export default SokobanGame;

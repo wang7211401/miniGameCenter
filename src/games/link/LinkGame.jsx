@@ -108,7 +108,7 @@ const LinkGame = ({ levelId, onComplete }) => {
       }
     } else {
       // 无法消除
-      Alert.alert('无法消除', '这两个卡片无法通过路径连接');
+      // Alert.alert('无法消除', '这两个卡片无法通过路径连接');
       setSelected(null);
     }
   };
@@ -138,7 +138,7 @@ const LinkGame = ({ levelId, onComplete }) => {
   // 减去一些边距和间隙
   const padding = 20;
   const gap = 4;
-  const cellSize = Math.min((width - padding) / cols, 60);
+  const cellSize = cols > 0 ? Math.min((width - padding) / cols, 60) : 0;
 
   return (
     <View style={styles.container}>
