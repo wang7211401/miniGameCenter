@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import LinkGame from '../../../games/link/LinkGame'; // 新增
 import MatchGame from '../../../games/match/MatchGame';
+import ScrewGame from '../../../games/screw/ScrewGame';
 import SheepGame from '../../../games/sheep/SheepGame'; // 新增
 import SokobanGame from '../../../games/sokoban/SokobanGame';
 import SudokuGame from '../../../games/sudoku/SudokuGame';
@@ -39,7 +40,9 @@ export default function GameScreen() {
     case 'match':
       GameComponent = MatchGame;
       break;
-
+    case 'screw':
+      GameComponent = ScrewGame;
+      break;
     default:
       return (
         <View style={styles.container}>

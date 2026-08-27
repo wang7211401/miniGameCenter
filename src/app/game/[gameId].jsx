@@ -4,6 +4,7 @@ import LevelCard from '../../components/LevelCard';
 import { COLORS, SPACING } from '../../constants/theme';
 import { levels as linkLevels } from '../../games/link/levels'; // 新增
 import { levels as matchLevels } from '../../games/match/levels';
+import { levels as screwLevels } from '../../games/screw/levels';
 import { levels as sheepLevels } from '../../games/sheep/levels'; // 新增
 import { levels as sokobanLevels } from '../../games/sokoban/levels';
 import { levels as sudokuLevels } from '../../games/sudoku/levels';
@@ -17,6 +18,7 @@ const levelMap = {
   sheep: sheepLevels,
   match: matchLevels,
   tetris: tetrisLevels,
+  screw: screwLevels,
   // 后续添加其他游戏
 };
 
