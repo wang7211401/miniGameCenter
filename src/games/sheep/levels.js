@@ -25,8 +25,8 @@ function getLevelConfig(levelId) {
 
   // 前 5 关稍微降低难度
   if (progress < 5) {
-    layers = Math.max(layers - 1, 3);
-    numTypes = Math.max(numTypes - 1, 3);
+    layers = Math.max(layers - 1, 5);
+    numTypes = Math.max(numTypes - 1, 5);
   }
 
   return { layers, rows, cols, numTypes };
@@ -44,3 +44,4 @@ export const TOTAL_LEVELS = levels.length;
 
 // 如果需要支持无限关卡，可以保留这个函数以供外部调用
 export { getLevelConfig };
+
