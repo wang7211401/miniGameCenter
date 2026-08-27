@@ -1,6 +1,7 @@
 // src/app/game/[gameId]/[levelId].jsx
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
+import IdiomGame from '../../../games/idiom/IdiomGame';
 import LinkGame from '../../../games/link/LinkGame'; // 新增
 import MatchGame from '../../../games/match/MatchGame';
 import ScrewGame from '../../../games/screw/ScrewGame';
@@ -42,6 +43,9 @@ export default function GameScreen() {
       break;
     case 'screw':
       GameComponent = ScrewGame;
+      break;
+    case 'idiom':
+      GameComponent = IdiomGame;
       break;
     default:
       return (

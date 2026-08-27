@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import GameCard from '../components/GameCard';
 import { COLORS, SPACING } from '../constants/theme';
+import { levels as idiomLevels } from '../games/idiom/levels';
 import { levels as linkLevels } from '../games/link/levels';
 import { levels as matchLevels } from '../games/match/levels';
 import { levels as screwLevels } from '../games/screw/levels';
@@ -22,6 +23,7 @@ const games = [
   { id: 'survival', title: '生存挑战', icon: '⚔️', freePlay: true },
   { id: '2048', title: '2048', icon: '🔢', freePlay: true },  // 新增
   { id: 'screw', title: '螺丝特工队', icon: '🔩', totalLevels: screwLevels.length },
+  { id: 'idiom', title: '成语消消乐', icon: '📖', totalLevels: idiomLevels.length },
 ];
 
 export default function HomeScreen() {
