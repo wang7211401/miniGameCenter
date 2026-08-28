@@ -7,6 +7,8 @@ import { levels as idiomLevels } from '../../games/idiom/levels';
 import { levels as klotskiLevels } from '../../games/klotski/levels';
 import { levels as linkLevels } from '../../games/link/levels'; // 新增
 import { levels as matchLevels } from '../../games/match/levels';
+import { levels as numpuzzleLevels } from '../../games/numpuzzle/levels';
+import { levels as puzzleLevels } from '../../games/puzzle/levels';
 import { levels as screwLevels } from '../../games/screw/levels';
 import { levels as sheepLevels } from '../../games/sheep/levels'; // 新增
 import { levels as sokobanLevels } from '../../games/sokoban/levels';
@@ -25,6 +27,8 @@ const levelMap = {
   idiom: idiomLevels,
   breaker: breakerLevels,
   klotski: klotskiLevels,
+  puzzle: puzzleLevels,
+  numpuzzle: numpuzzleLevels,
   // 后续添加其他游戏
 };
 

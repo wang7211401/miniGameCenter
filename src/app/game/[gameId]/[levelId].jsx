@@ -7,6 +7,8 @@ import IdiomGame from '../../../games/idiom/IdiomGame';
 import KlotskiGame from '../../../games/klotski/KlotskiGame';
 import LinkGame from '../../../games/link/LinkGame'; // 新增
 import MatchGame from '../../../games/match/MatchGame';
+import NumpuzzleGame from '../../../games/numpuzzle/NumpuzzleGame';
+import puzzleGame from '../../../games/puzzle/PuzzleGame';
 import ScrewGame from '../../../games/screw/ScrewGame';
 import SheepGame from '../../../games/sheep/SheepGame'; // 新增
 import SokobanGame from '../../../games/sokoban/SokobanGame';
@@ -65,6 +67,12 @@ export default function GameScreen() {
       break;
     case 'klotski':
       GameComponent = KlotskiGame;
+      break;
+    case 'puzzle':
+      GameComponent = puzzleGame;
+      break;
+    case 'numpuzzle':
+      GameComponent = NumpuzzleGame;
       break;
     default:
       return (

@@ -8,6 +8,8 @@ import { levels as idiomLevels } from '../games/idiom/levels';
 import { levels as klotskiLevels } from '../games/klotski/levels';
 import { levels as linkLevels } from '../games/link/levels';
 import { levels as matchLevels } from '../games/match/levels';
+import { levels as numpuzzleLevels } from '../games/numpuzzle/levels';
+import { levels as puzzleLevels } from '../games/puzzle/levels';
 import { levels as screwLevels } from '../games/screw/levels';
 import { levels as sheepLevels } from '../games/sheep/levels';
 import { levels as sokobanLevels } from '../games/sokoban/levels';
@@ -30,6 +32,8 @@ const games = [
   { id: 'virus', title: '消灭病毒', icon: '🦠', freePlay: true },
   { id: 'breaker', title: '打砖块', icon: '🧱', totalLevels: breakerLevels.length },
   { id: 'klotski', title: '华容道', icon: '🧩', totalLevels: klotskiLevels.length },
+  { id: 'puzzle', title: '拼图游戏', icon: '🖼️', totalLevels: puzzleLevels.length },
+  { id: 'numpuzzle', title: '数字华容道', icon: '🔢', totalLevels: numpuzzleLevels.length },
 ];
 
 export default function HomeScreen() {
