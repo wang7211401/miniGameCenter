@@ -3,7 +3,9 @@ import { useRouter } from 'expo-router';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import GameCard from '../components/GameCard';
 import { COLORS, SPACING } from '../constants/theme';
+import { levels as breakerLevels } from '../games/breaker/levels';
 import { levels as idiomLevels } from '../games/idiom/levels';
+import { levels as klotskiLevels } from '../games/klotski/levels';
 import { levels as linkLevels } from '../games/link/levels';
 import { levels as matchLevels } from '../games/match/levels';
 import { levels as screwLevels } from '../games/screw/levels';
@@ -24,6 +26,10 @@ const games = [
   { id: '2048', title: '2048', icon: '🔢', freePlay: true },  // 新增
   { id: 'screw', title: '螺丝特工队', icon: '🔩', totalLevels: screwLevels.length },
   { id: 'idiom', title: '成语消消乐', icon: '📖', totalLevels: idiomLevels.length },
+  { id: 'jump', title: '跳一跳', icon: '🦘', freePlay: true },
+  { id: 'virus', title: '消灭病毒', icon: '🦠', freePlay: true },
+  { id: 'breaker', title: '打砖块', icon: '🧱', totalLevels: breakerLevels.length },
+  { id: 'klotski', title: '华容道', icon: '🧩', totalLevels: klotskiLevels.length },
 ];
 
 export default function HomeScreen() {
@@ -45,6 +51,16 @@ export default function HomeScreen() {
       return;
     }
 
+    if (gameId === 'jump') {
+      router.push('/game/jump');
+      return;
+    }
+
+    if (gameId === 'virus') {
+      router.push('/game/virus');
+      return;
+    }
+    
     router.push(`/game/${gameId}`);
   };
 

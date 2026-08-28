@@ -2,7 +2,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import LevelCard from '../../components/LevelCard';
 import { COLORS, SPACING } from '../../constants/theme';
+import { levels as breakerLevels } from '../../games/breaker/levels';
 import { levels as idiomLevels } from '../../games/idiom/levels';
+import { levels as klotskiLevels } from '../../games/klotski/levels';
 import { levels as linkLevels } from '../../games/link/levels'; // 新增
 import { levels as matchLevels } from '../../games/match/levels';
 import { levels as screwLevels } from '../../games/screw/levels';
@@ -21,6 +23,8 @@ const levelMap = {
   tetris: tetrisLevels,
   screw: screwLevels,
   idiom: idiomLevels,
+  breaker: breakerLevels,
+  klotski: klotskiLevels,
   // 后续添加其他游戏
 };
 

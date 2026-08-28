@@ -6,6 +6,7 @@ import useUserStore from '../store/userSlice';
 export default function LeaderboardScreen() {
   const [activeTab, setActiveTab] = useState('tetris');
   const scoreHistory = useUserStore(state => state.scoreHistory);
+  const virusHistory = useUserStore(state => state.virusHistory);
   const survivalHistory = useUserStore(state => state.survivalHistory);
   const scores = useMemo(
     () => [...(scoreHistory || [])].sort((a, b) => b.score - a.score),
@@ -15,8 +16,13 @@ export default function LeaderboardScreen() {
     () => [...(survivalHistory || [])].sort((a, b) => b.seconds - a.seconds),
     [survivalHistory]
   );
+  const virusScores = useMemo(
+    () => [...(virusHistory || [])].sort((a, b) => b.score - a.score),
+    [virusHistory]
+  );
   const tabs = [
     { id: 'tetris', label: '俄罗斯方块', data: scores, empty: '还没有俄罗斯方块成绩' },
+    { id: 'virus', label: '病毒危机', data: virusScores, empty: '还没有病毒危机成绩' },
     { id: 'survival', label: '生存挑战', data: survivalTimes, empty: '还没有生存挑战成绩' },
   ];
   const currentTab = tabs.find(tab => tab.id === activeTab) || tabs[0];

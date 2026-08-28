@@ -1,7 +1,10 @@
 // src/app/game/[gameId]/[levelId].jsx
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
+import BreakerGame from '../../../games/breaker/BreakerGame'; // 新增
+import { levels as breakerLevels } from '../../../games/breaker/levels';
 import IdiomGame from '../../../games/idiom/IdiomGame';
+import KlotskiGame from '../../../games/klotski/KlotskiGame';
 import LinkGame from '../../../games/link/LinkGame'; // 新增
 import MatchGame from '../../../games/match/MatchGame';
 import ScrewGame from '../../../games/screw/ScrewGame';
@@ -16,9 +19,19 @@ export default function GameScreen() {
   const router = useRouter();
   const setProgress = useUserStore(state => state.setProgress);
 
-  const handleComplete = (stars) => {
-    setProgress(gameId, parseInt(levelId), stars);
-    router.push(`/game/${gameId}`);
+  const handleComplete = (stars, action = 'list') => {
+    const currentLevel = parseInt(levelId, 10);
+    setProgress(gameId, currentLevel, stars);
+
+    if (gameId === 'breaker' && action === 'next') {
+      const nextLevel = currentLevel + 1;
+      if (breakerLevels.some(level => level.id === nextLevel)) {
+        router.replace(`/game/${gameId}/${nextLevel}`);
+        return;
+      }
+    }
+
+    router.replace(`/game/${gameId}`);
   };
 
   let GameComponent;
@@ -46,6 +59,12 @@ export default function GameScreen() {
       break;
     case 'idiom':
       GameComponent = IdiomGame;
+      break;
+    case 'breaker':
+      GameComponent = BreakerGame;
+      break;
+    case 'klotski':
+      GameComponent = KlotskiGame;
       break;
     default:
       return (

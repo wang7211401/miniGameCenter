@@ -9,6 +9,7 @@ const useUserStore = create(
       // 存储结构：{ gameId: { currentLevel: number, stars: { levelId: number } } }
       progress: {},
       scoreHistory: [],
+      virusHistory: [],
       survivalHistory: [],
       recordTetrisScore: (score) => {
         if (!Number.isFinite(score) || score < 0) return;
@@ -23,6 +24,19 @@ const useUserStore = create(
         }));
       },
       getTetrisScores: () => get().scoreHistory,
+      recordVirusScore: (score) => {
+        if (!Number.isFinite(score) || score < 0) return;
+        const entry = {
+          score: Math.floor(score),
+          playedAt: new Date().toISOString(),
+        };
+        set((state) => ({
+          virusHistory: [...(state.virusHistory || []), entry]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 20),
+        }));
+      },
+      getVirusScores: () => get().virusHistory,
       recordSurvivalTime: (seconds) => {
         if (!Number.isFinite(seconds) || seconds < 0) return;
         const entry = {
