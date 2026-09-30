@@ -128,6 +128,11 @@ const Game2048 = () => {
     }
   };
 
+  // panResponder 只创建一次，直接引用 handleMove 会闭包捕获首次渲染的
+  // board/score/gameOver，导致滑动始终基于旧棋盘计算。改用 ref 转发最新函数。
+  const handleMoveRef = useRef(handleMove);
+  handleMoveRef.current = handleMove;
+
   // PanResponder 处理滑动手势
   const panResponder = useRef(
     PanResponder.create({
@@ -137,12 +142,12 @@ const Game2048 = () => {
         if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
         if (Math.abs(dx) > Math.abs(dy)) {
           // 水平滑动
-          if (dx > 0) handleMove('right');
-          else handleMove('left');
+          if (dx > 0) handleMoveRef.current('right');
+          else handleMoveRef.current('left');
         } else {
           // 垂直滑动
-          if (dy > 0) handleMove('down');
-          else handleMove('up');
+          if (dy > 0) handleMoveRef.current('down');
+          else handleMoveRef.current('up');
         }
       },
     })

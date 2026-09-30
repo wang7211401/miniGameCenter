@@ -51,7 +51,7 @@ const KlotskiGame = ({ levelId, onComplete }) => {
             if (checkWin(newPieces)) {
                 Alert.alert(
                     '🎉 恭喜通关！',
-                    `你用了 ${moves + 1} 步完成了“横刀立马”！`,
+                    `你用了 ${moves + 1} 步完成了“${levelName || '横刀立马'}”！`,
                     [{ text: '确定', onPress: () => onComplete && onComplete(3) }]
                 );
             }

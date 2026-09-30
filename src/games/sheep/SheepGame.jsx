@@ -112,6 +112,13 @@ const SheepGame = ({ levelId, onComplete }) => {
       return;
     }
 
+    // 槽位放满 7 张且未消除，游戏死锁，判负重开
+    if (finalSlot.length >= 7) {
+      Alert.alert('💔 槽位已满', '无法继续消除，游戏结束，请重试');
+      resetLevel();
+      return;
+    }
+
     // 失败判定（无可用卡片且未完成）
     const nextAvailable = getAvailableCards(newGrids, newRemoved);
     if (nextAvailable.length === 0 && newRemoved.size < totalCards) {

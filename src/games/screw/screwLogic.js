@@ -86,13 +86,14 @@ export function isRemovable(board, r, c, slotCounts) {
   return true;
 }
 
-// 拧下螺丝
+// 拧下螺丝（返回新数组/对象，避免直接修改 React state）
 export function removeScrew(board, r, c, slotCounts) {
   if (!isRemovable(board, r, c, slotCounts)) return null;
   const color = board[r][c];
-  board[r][c] = 0;
-  slotCounts[color] = (slotCounts[color] || 0) + 1;
-  return { board, slotCounts };
+  const newBoard = board.map(row => [...row]);
+  newBoard[r][c] = 0;
+  const newSlotCounts = { ...slotCounts, [color]: (slotCounts[color] || 0) + 1 };
+  return { board: newBoard, slotCounts: newSlotCounts };
 }
 
 // 检查是否胜利（所有螺丝拧完）

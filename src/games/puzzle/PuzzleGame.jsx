@@ -36,8 +36,12 @@ const getBoardSize = (gridSize) => {
   return Math.min(300, 100 * gridSize); // 单个块最小 100，但总尺寸不超过 300
 };
 
-const PuzzleGame = ({ onExit }) => {
-  const [currentLevel, setCurrentLevel] = useState(0); // 当前关卡索引
+const PuzzleGame = ({ levelId, onComplete }) => {
+  // 优先使用路由传入的关卡 id（1 基），否则从第 1 关开始
+  const [currentLevel, setCurrentLevel] = useState(() => {
+    const idx = levels.findIndex(l => l.id === levelId);
+    return idx >= 0 ? idx : 0;
+  }); // 当前关卡索引
   const [tiles, setTiles] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [moves, setMoves] = useState(0);
@@ -55,13 +59,23 @@ const PuzzleGame = ({ onExit }) => {
   }, [currentLevel]);
 
   // 检查完成
+  const completedRef = useRef(false);
   useEffect(() => {
     if (tiles.length === 0) return;
     const allCorrect = tiles.every((tile) => tile.id === tile.currentIndex);
-    if (allCorrect) {
+    if (allCorrect && !completedRef.current) {
+      completedRef.current = true;
       setIsComplete(true);
+      const total = tiles.length;
+      const stars = moves <= total ? 3 : moves <= total * 2 ? 2 : 1;
+      onComplete && onComplete(stars);
     }
-  }, [tiles]);
+  }, [tiles, moves, onComplete]);
+
+  // 初始化或切换关卡时重置完成标记
+  useEffect(() => {
+    completedRef.current = false;
+  }, [currentLevel]);
 
   // 点击拼图块
   const handleTilePress = (index) => {
@@ -109,6 +123,7 @@ const PuzzleGame = ({ onExit }) => {
     setMoves(0);
     setIsComplete(false);
     setSelectedIndex(null);
+    completedRef.current = false;
   };
 
   // 渲染

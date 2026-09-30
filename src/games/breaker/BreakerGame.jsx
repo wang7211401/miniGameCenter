@@ -8,6 +8,7 @@ import {
 } from 'react';
 
 import {
+  Alert,
   Dimensions,
   PanResponder,
   Pressable,
@@ -592,14 +593,16 @@ export default function BreakerGame({ levelId = 1, onComplete }) {
         onMoveShouldSetPanResponder:
           () => true,
 
+        // 使用 pageX（相对屏幕）而不是 locationX（相对当前命中的子视图），
+        // 否则手指经过挡板/球/砖块时坐标基准会变化，导致挡板左右闪烁
         onPanResponderGrant:
           (event) => {
-              movePaddle(event.nativeEvent?.locationX);
+              movePaddle(event.nativeEvent?.pageX);
           },
 
         onPanResponderMove:
           (event) => {
-              movePaddle(event.nativeEvent?.locationX);
+              movePaddle(event.nativeEvent?.pageX);
           },
 
         onPanResponderRelease:

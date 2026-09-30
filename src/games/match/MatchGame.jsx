@@ -19,12 +19,14 @@ const MatchGame = ({ levelId, onComplete }) => {
   const [targetScore, setTargetScore] = useState(50);
   const [gameOver, setGameOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [numTypes, setNumTypes] = useState(4);
 
   // 加载关卡
   useEffect(() => {
     const level = levels.find(l => l.id === levelId);
     if (!level) return;
     const newBoard = generateBoard(level.rows, level.cols, level.numTypes);
+    setNumTypes(level.numTypes);
     setBoard(newBoard);
     setScore(0);
     setSteps(0);
@@ -85,7 +87,7 @@ const MatchGame = ({ levelId, onComplete }) => {
           if (afterGravity[r][c] === 0) countZero++;
         }
         for (let r = 0; r < countZero; r++) {
-          afterGravity[r][c] = Math.floor(Math.random() * 4) + 1; // 简化
+          afterGravity[r][c] = Math.floor(Math.random() * numTypes) + 1;
         }
       }
       currentBoard = afterGravity;

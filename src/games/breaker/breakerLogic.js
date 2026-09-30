@@ -92,7 +92,8 @@ export function getBrickScore(brick) {
 }
 
 export function increaseBallSpeed(ball, level) {
-  const maxSpeed = 8 + level * 0.3;
+  // 封顶球速，避免高关卡（如 100 关）时 8 + level * 0.3 失控
+  const maxSpeed = Math.min(8 + level * 0.3, 11);
   const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
   if (speed >= maxSpeed || speed === 0) return;
   const ratio = (speed + 0.12) / speed;

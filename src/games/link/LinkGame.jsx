@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS, SPACING } from '../../constants/theme';
 import { levels } from './levels';
-import { canConnect, generateBoard } from './linkLogic';
+import { canConnect, generateBoard, hasRemainingMoves } from './linkLogic';
 
 const { width } = Dimensions.get('window');
 
@@ -55,17 +55,29 @@ const LinkGame = ({ levelId, onComplete }) => {
       });
     });
     
-    // 打乱
-    for (let i = flat.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [flat[i], flat[j]] = [flat[j], flat[i]];
+    // 打乱，最多重试若干次，避免重排后仍无解（死局）
+    let newBoard = null;
+    for (let attempt = 0; attempt < 20; attempt++) {
+      for (let i = flat.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [flat[i], flat[j]] = [flat[j], flat[i]];
+      }
+      const candidate = board.map(row => [...row]);
+      positions.forEach(([r, c], idx) => {
+        candidate[r][c] = flat[idx];
+      });
+      if (hasRemainingMoves(candidate)) {
+        newBoard = candidate;
+        break;
+      }
     }
-    
-    const newBoard = board.map(row => [...row]);
-    positions.forEach(([r, c], idx) => {
-      newBoard[r][c] = flat[idx];
-    });
-    
+
+    // 重试仍无解则保持原棋盘，至少不改变可解状态
+    if (!newBoard) {
+      Alert.alert('无法重排', '当前剩余卡片难以重排出可解布局');
+      return;
+    }
+
     setBoard(newBoard);
     setSelected(null);
   };

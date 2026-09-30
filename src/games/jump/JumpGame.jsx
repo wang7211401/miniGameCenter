@@ -580,12 +580,12 @@ export default function JumpGame() {
             {
               transform: [
                 {
-                  translateX:
-                    playerAnim.x.__getValue(),
+                  // 直接传 Animated.Value（而不是 __getValue() 快照），
+                  // setValue 才能驱动视图更新，否则跳跃过程中画面会定格
+                  translateX: playerAnim.x,
                 },
                 {
-                  translateY:
-                    playerAnim.y.__getValue(),
+                  translateY: playerAnim.y,
                 },
                 {
                   rotate:
