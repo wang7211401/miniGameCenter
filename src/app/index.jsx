@@ -4,16 +4,22 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 import GameCard from '../components/GameCard';
 import { COLORS, SPACING } from '../constants/theme';
 import { levels as breakerLevels } from '../games/breaker/levels';
+import { levels as crosswordLevels } from '../games/crossword/levels';
 import { levels as idiomLevels } from '../games/idiom/levels';
 import { levels as klotskiLevels } from '../games/klotski/levels';
 import { levels as linkLevels } from '../games/link/levels';
 import { levels as matchLevels } from '../games/match/levels';
+import { levels as mazeLevels } from '../games/maze/levels';
+import { levels as minesweeperLevels } from '../games/minesweeper/levels';
 import { levels as numpuzzleLevels } from '../games/numpuzzle/levels';
+import { levels as pixelLevels } from '../games/pixel/levels';
 import { levels as puzzleLevels } from '../games/puzzle/levels';
 import { levels as screwLevels } from '../games/screw/levels';
 import { levels as sheepLevels } from '../games/sheep/levels';
+import { levels as snakeLevels } from '../games/snake/levels';
 import { levels as sokobanLevels } from '../games/sokoban/levels';
 import { levels as sudokuLevels } from '../games/sudoku/levels';
+import { levels as waterLevels } from '../games/water/levels';
 import useUserStore from '../store/userSlice';
 
 // 游戏列表数据
@@ -34,6 +40,12 @@ const games = [
   { id: 'klotski', title: '华容道', icon: '🧩', totalLevels: klotskiLevels.length },
   { id: 'puzzle', title: '拼图游戏', icon: '🖼️', totalLevels: puzzleLevels.length },
   { id: 'numpuzzle', title: '数字华容道', icon: '🔢', totalLevels: numpuzzleLevels.length },
+  { id: 'snake', title: '贪吃蛇', icon: '🐍', totalLevels: snakeLevels.length },
+  { id: 'minesweeper', title: '扫雷', icon: '💣', totalLevels: minesweeperLevels.length },
+  { id: 'water', title: '颜色倒水', icon: '🧪', totalLevels: waterLevels.length },
+  { id: 'maze', title: '迷宫', icon: '🌀', totalLevels: mazeLevels.length },
+  { id: 'crossword', title: '填字游戏', icon: '📝', totalLevels: crosswordLevels.length },
+  { id: 'pixel', title: '像素填色', icon: '🎨', totalLevels: pixelLevels.length },
 ];
 
 export default function HomeScreen() {

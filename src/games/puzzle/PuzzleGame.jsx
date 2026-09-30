@@ -1,5 +1,5 @@
 // src/games/puzzle/PuzzleGame.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, ImageBackground, Text, TouchableOpacity, View } from 'react-native';
 import { levels } from './levels'; // 引入关卡配置
 import styles from './styles';

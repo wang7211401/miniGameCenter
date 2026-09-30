@@ -3,17 +3,23 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 import LevelCard from '../../components/LevelCard';
 import { COLORS, SPACING } from '../../constants/theme';
 import { levels as breakerLevels } from '../../games/breaker/levels';
+import { levels as crosswordLevels } from '../../games/crossword/levels';
 import { levels as idiomLevels } from '../../games/idiom/levels';
 import { levels as klotskiLevels } from '../../games/klotski/levels';
 import { levels as linkLevels } from '../../games/link/levels'; // 新增
 import { levels as matchLevels } from '../../games/match/levels';
+import { levels as mazeLevels } from '../../games/maze/levels';
+import { levels as minesweeperLevels } from '../../games/minesweeper/levels';
 import { levels as numpuzzleLevels } from '../../games/numpuzzle/levels';
+import { levels as pixelLevels } from '../../games/pixel/levels';
 import { levels as puzzleLevels } from '../../games/puzzle/levels';
 import { levels as screwLevels } from '../../games/screw/levels';
 import { levels as sheepLevels } from '../../games/sheep/levels'; // 新增
+import { levels as snakeLevels } from '../../games/snake/levels';
 import { levels as sokobanLevels } from '../../games/sokoban/levels';
 import { levels as sudokuLevels } from '../../games/sudoku/levels';
 import { levels as tetrisLevels } from '../../games/tetris/levels';
+import { levels as waterLevels } from '../../games/water/levels';
 import useUserStore from '../../store/userSlice';
 
 const levelMap = {
@@ -29,6 +35,12 @@ const levelMap = {
   klotski: klotskiLevels,
   puzzle: puzzleLevels,
   numpuzzle: numpuzzleLevels,
+  snake: snakeLevels,
+  minesweeper: minesweeperLevels,
+  water: waterLevels,
+  maze: mazeLevels,
+  crossword: crosswordLevels,
+  pixel: pixelLevels,
   // 后续添加其他游戏
 };
 

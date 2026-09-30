@@ -11,6 +11,34 @@ const useUserStore = create(
       scoreHistory: [],
       virusHistory: [],
       survivalHistory: [],
+      bestTimes: {}, // { gameId: { levelId: seconds } }
+      bestMoves: {}, // { gameId: { levelId: moves } }
+      recordBestMoves: (gameId, levelId, moves) => {
+        if (!Number.isFinite(moves) || moves < 0) return;
+        const gameMoves = get().bestMoves[gameId] || {};
+        const prev = gameMoves[levelId];
+        if (prev !== undefined && prev <= moves) return;
+        set((state) => ({
+          bestMoves: {
+            ...state.bestMoves,
+            [gameId]: { ...gameMoves, [levelId]: Math.floor(moves) },
+          },
+        }));
+      },
+      getBestMoves: (gameId, levelId) => get().bestMoves[gameId]?.[levelId],
+      recordBestTime: (gameId, levelId, seconds) => {
+        if (!Number.isFinite(seconds) || seconds < 0) return;
+        const gameTimes = get().bestTimes[gameId] || {};
+        const prev = gameTimes[levelId];
+        if (prev !== undefined && prev <= seconds) return;
+        set((state) => ({
+          bestTimes: {
+            ...state.bestTimes,
+            [gameId]: { ...gameTimes, [levelId]: Math.floor(seconds) },
+          },
+        }));
+      },
+      getBestTime: (gameId, levelId) => get().bestTimes[gameId]?.[levelId],
       recordTetrisScore: (score) => {
         if (!Number.isFinite(score) || score < 0) return;
         const entry = {

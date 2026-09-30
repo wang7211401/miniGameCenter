@@ -3,17 +3,23 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import BreakerGame from '../../../games/breaker/BreakerGame'; // 新增
 import { levels as breakerLevels } from '../../../games/breaker/levels';
+import CrosswordGame from '../../../games/crossword/CrosswordGame';
 import IdiomGame from '../../../games/idiom/IdiomGame';
 import KlotskiGame from '../../../games/klotski/KlotskiGame';
 import LinkGame from '../../../games/link/LinkGame'; // 新增
 import MatchGame from '../../../games/match/MatchGame';
+import MazeGame from '../../../games/maze/MazeGame';
+import MinesweeperGame from '../../../games/minesweeper/MinesweeperGame';
 import NumpuzzleGame from '../../../games/numpuzzle/NumpuzzleGame';
+import PixelGame from '../../../games/pixel/PixelGame';
 import puzzleGame from '../../../games/puzzle/PuzzleGame';
 import ScrewGame from '../../../games/screw/ScrewGame';
 import SheepGame from '../../../games/sheep/SheepGame'; // 新增
+import SnakeGame from '../../../games/snake/SnakeGame';
 import SokobanGame from '../../../games/sokoban/SokobanGame';
 import SudokuGame from '../../../games/sudoku/SudokuGame';
 import TetrisGame from '../../../games/tetris/TetrisGame';
+import WaterGame from '../../../games/water/WaterGame';
 import useUserStore from '../../../store/userSlice';
 
 export default function GameScreen() {
@@ -73,6 +79,24 @@ export default function GameScreen() {
       break;
     case 'numpuzzle':
       GameComponent = NumpuzzleGame;
+      break;
+    case 'snake':
+      GameComponent = SnakeGame;
+      break;
+    case 'minesweeper':
+      GameComponent = MinesweeperGame;
+      break;
+    case 'water':
+      GameComponent = WaterGame;
+      break;
+    case 'maze':
+      GameComponent = MazeGame;
+      break;
+    case 'crossword':
+      GameComponent = CrosswordGame;
+      break;
+    case 'pixel':
+      GameComponent = PixelGame;
       break;
     default:
       return (
